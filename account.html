@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block title %}Account — AnalyzeMyPlaylist{% endblock %}
+
+{% block body %}
+<nav class="nav-sticky">
+  <a href="{{ url_for('index') }}" class="nav-logo">Analyze<span>My</span>Playlist</a>
+  <div style="display:flex;align-items:center;gap:16px">
+    <a href="{{ url_for('dashboard') }}" style="font-size:13px;color:var(--text2);text-decoration:none;font-weight:600">← Dashboard</a>
+    <a href="{{ url_for('logout') }}" class="btn-logout">Sign out</a>
+  </div>
+</nav>
+
+<main style="max-width:720px;margin:0 auto;padding:48px 40px 100px">
+
+  <div style="margin-bottom:40px">
+    <div class="mono-label">Settings</div>
+    <h1 style="font-size:36px;font-weight:800;letter-spacing:-0.03em">Your Account</h1>
+  </div>
+
+  <!-- PROFILE -->
+  <div class="card" style="margin-bottom:24px">
+    <div style="display:flex;align-items:center;gap:20px;margin-bottom:28px;padding-bottom:24px;border-bottom:1px solid var(--border)">
+      <div style="width:64px;height:64px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:28px;overflow:hidden;flex-shrink:0">
+        {% if user.avatar_url %}<img src="{{ user.avatar_url }}" style="width:100%;height:100%;object-fit:cover"/>{% else %}🎵{% endif %}
+      </div>
+      <div>
+        <div style="font-size:20px;font-weight:700">{{ user.username }}</div>
+        <div style="font-size:13px;color:var(--text3);margin-top:2px">{{ user.email }}</div>
+        <div class="nav-tier {{ 'tier-premium' if user.is_premium() else 'tier-free' }}" style="display:inline-flex;margin-top:8px">{{ user.tier.upper() }}</div>
+      </div>
+    </div>
+
+    <div id="profile-error" style="display:none;padding:12px 16px;background:rgba(255,61,0,0.1);border:1px solid rgba(255,61,0,0.2);border-radius:10px;font-size:13px;color:var(--red);margin-bottom:16px"></div>
+    <div id="profile-success" style="display:none;padding:12px 16px;background:rgba(29,185,84,0.1);border:1px solid rgba(29,185,84,0.2);border-radius:10px;font-size:13px;color:var(--green);margin-bottom:16px"></div>
+
+    <div class="form-group">
+      <label class="form-label">Username</label>
+      <input class="form-input" id="username" value="{{ user.username }}" style="max-width:360px"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input class="form-input" id="email" type="email" value="{{ user.email }}" style="max-width:360px"/>
+    </div>
+    <button class="btn btn-green btn-sm" onclick="saveProfile()">Save Changes</button>
+  </div>
+
+  <!-- CHANGE PASSWORD -->
+  <div class="card" style="margin-bottom:24px">
+    <div style="font-size:16px;font-weight:700;margin-bottom:20px">Change Password</div>
+    <div class="form-group">
+      <label class="form-label">Current Password</label>
+      <input class="form-input" id="current-password" type="password" style="max-width:360px"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">New Password</label>
+      <input class="form-input" id="new-password" type="password" style="max-width:360px"/>
+    </div>
+    <button class="btn btn-dark btn-sm" onclick="changePassword()">Update Password</button>
+  </div>
+
+  <!-- SPOTIFY CONNECTION -->
+  <div class="card" style="margin-bottom:24px">
+    <div style="font-size:16px;font-weight:700;margin-bottom:4px">Spotify Connection</div>
+    <div style="font-size:13px;color:var(--text3);margin-bottom:20px">Used for OAuth login and playlist creation (requires Spotify Premium)</div>
+    {% if user.spotify_id %}
+    <div style="display:flex;align-items:center;gap:14px;padding:16px;background:rgba(29,185,84,0.08);border:1px solid rgba(29,185,84,0.2);border-radius:12px;margin-bottom:16px">
+      <div style="font-size:24px">✅</div>
+      <div>
+        <div style="font-size:14px;font-weight:600;color:var(--green)">Spotify Connected</div>
+        <div style="font-size:12px;color:var(--text3)">{{ 'Premium account — playback enabled' if user.spotify_premium else 'Free account' }}</div>
+      </div>
+    </div>
+    {% else %}
+    <div style="margin-bottom:16px">
+      <p style="font-size:14px;color:var(--text2);margin-bottom:16px;line-height:1.6">Connect Spotify to enable playlist creation from your Music DNA (requires Spotify Premium user account).</p>
+      <a href="{{ url_for('auth_google') }}" class="btn btn-green btn-sm">Connect Spotify</a>
+      <div style="margin-top:10px;font-family:'DM Mono',monospace;font-size:11px;color:var(--text3)">Note: Spotify OAuth requires developer access — coming soon</div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- SUBSCRIPTION -->
+  <div class="card" style="margin-bottom:24px">
+    <div style="font-size:16px;font-weight:700;margin-bottom:4px">Subscription</div>
+    <div style="font-size:13px;color:var(--text3);margin-bottom:20px">Manage your Music DNA plan</div>
+    {% if user.is_premium() %}
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;padding:16px;background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.2);border-radius:12px">
+      <div>
+        <div style="font-size:14px;font-weight:600;color:var(--amber)">⭐ Premium Active</div>
+        <div style="font-size:12px;color:var(--text3)">$4.99/month · All Music DNA features unlocked</div>
+      </div>
+      <button style="background:none;border:1px solid var(--border);color:var(--text3);border-radius:999px;padding:8px 16px;font-family:'Syne',sans-serif;font-size:12px;cursor:pointer" onclick="alert('Subscription management via Stripe coming soon.')">Manage</button>
+    </div>
+    {% else %}
+    <p style="font-size:14px;color:var(--text2);margin-bottom:20px;line-height:1.6">You're on the Free plan. Upgrade to Premium to unlock Music DNA Cards, playlist creation, listening trends, and friend comparisons.</p>
+    <div style="background:var(--surface2);border-radius:12px;padding:20px;margin-bottom:20px">
+      <div class="mono-label" style="color:var(--green);margin-bottom:12px">PREMIUM INCLUDES</div>
+      {% for f in ['🃏 Shareable Music DNA Cards','🎵 Playlist creation from your DNA','📈 Monthly listening trends','👥 Friend taste comparison','📄 Full PDF export'] %}
+      <div style="font-size:13px;color:var(--text2);padding:6px 0;border-bottom:1px solid var(--border)">{{ f }}</div>
+      {% endfor %}
+    </div>
+    <button class="btn btn-amber" onclick="upgradeNow()">Upgrade to Premium — $4.99/mo</button>
+    {% endif %}
+  </div>
+
+  <!-- JOINED -->
+  <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text3);text-align:center;margin-top:32px">
+    Member since {{ user.created_at.strftime('%B %Y') }}
+  </div>
+
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function saveProfile() {
+  const username = document.getElementById('username').value.trim();
+  const email    = document.getElementById('email').value.trim();
+  const resp = await fetch('/api/user/update', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ username, email })
+  });
+  const data = await resp.json();
+  if (data.error) {
+    showMsg('profile-error', data.error);
+  } else {
+    showMsg('profile-success', 'Profile updated!');
+  }
+}
+
+async function changePassword() {
+  const current = document.getElementById('current-password').value;
+  const newpw   = document.getElementById('new-password').value;
+  if (!current || !newpw) return showMsg('profile-error', 'Both fields required.');
+  const resp = await fetch('/api/user/update', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ current_password: current, new_password: newpw })
+  });
+  const data = await resp.json();
+  if (data.error) showMsg('profile-error', data.error);
+  else showMsg('profile-success', 'Password updated!');
+}
+
+async function upgradeNow() {
+  const resp = await fetch('/api/user/upgrade', { method: 'POST' });
+  const data = await resp.json();
+  if (data.success) window.location.reload();
+}
+
+function showMsg(id, msg) {
+  ['profile-error','profile-success'].forEach(i => {
+    const el = document.getElementById(i);
+    el.style.display = 'none';
+  });
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 4000);
+}
+</script>
+{% endblock %}

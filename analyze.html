@@ -1,0 +1,484 @@
+{% extends "base.html" %}
+{% block title %}Analyze Your Music DNA — AnalyzeMyPlaylist{% endblock %}
+
+{% block body %}
+<nav class="nav-sticky">
+  <a href="{{ url_for('index') }}" class="nav-logo">Analyze<span>My</span>Playlist</a>
+  <div class="nav-right">
+    <a href="{{ url_for('dashboard') }}" class="nav-link">← Dashboard</a>
+    <div class="nav-user">
+      <div class="nav-avatar">
+        {% if user.avatar_url %}<img src="{{ user.avatar_url }}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>{% else %}🎵{% endif %}
+      </div>
+      <div>
+        <div class="nav-name">{{ user.username }}</div>
+        <div class="nav-tier {{ 'tier-premium' if user.is_premium() else 'tier-free' }}">{{ user.tier.upper() }}</div>
+      </div>
+    </div>
+    <a href="{{ url_for('logout') }}" class="btn-logout">Sign out</a>
+  </div>
+</nav>
+
+<main class="main-content">
+
+  <!-- ── SOURCE PICKER ── -->
+  <div id="upload-section">
+    <div class="page-header">
+      <div class="mono-label">Music DNA Analysis</div>
+      <h1 class="page-title">Choose your<br/><em>source</em></h1>
+      <p style="font-size:15px;color:var(--text2);max-width:500px;line-height:1.6;margin-top:12px">Pick where your music data comes from. We'll analyze it and build your full Music DNA report.</p>
+    </div>
+
+    <!-- SOURCE CARDS -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-bottom:40px">
+
+      <!-- SPOTIFY JSON -->
+      <div class="source-card active" id="src-spotify" onclick="selectSource('spotify')">
+        <div class="source-icon">🎵</div>
+        <div class="source-name">Spotify</div>
+        <div class="source-desc">Upload your StreamingHistory JSON file from your Spotify data export.</div>
+        <div class="source-badge live">LIVE</div>
+      </div>
+
+      <!-- APPLE MUSIC PDF -->
+      <div class="source-card" id="src-apple" onclick="selectSource('apple')">
+        <div class="source-icon">🍎</div>
+        <div class="source-name">Apple Music</div>
+        <div class="source-desc">Upload your Apple Music listening history as a PDF or CSV from your data export.</div>
+        <div class="source-badge live">LIVE</div>
+      </div>
+
+      <!-- YOUTUBE -->
+      <div class="source-card" id="src-youtube" onclick="selectSource('youtube')">
+        <div class="source-icon">▶️</div>
+        <div class="source-name">YouTube</div>
+        <div class="source-desc">
+          {% if user.google_id %}
+            Analyze your liked videos and subscriptions directly from your YouTube account.
+          {% else %}
+            Sign in with Google to connect your YouTube account.
+          {% endif %}
+        </div>
+        <div class="source-badge live">LIVE</div>
+      </div>
+
+    </div>
+
+    <!-- ── SPOTIFY PANEL ── -->
+    <div id="panel-spotify" class="source-panel">
+      <div class="steps-row">
+        <div class="how-step">
+          <div class="how-num">01</div>
+          <div class="how-text">Go to <a href="https://www.spotify.com/account/privacy" target="_blank" class="link-green">spotify.com/account/privacy</a> → scroll to "Download your data"</div>
+        </div>
+        <div class="how-step">
+          <div class="how-num">02</div>
+          <div class="how-text">Click <strong>Request data</strong> under Account data. Spotify emails a zip within a few minutes.</div>
+        </div>
+        <div class="how-step">
+          <div class="how-num">03</div>
+          <div class="how-text">Unzip, find <strong>StreamingHistory_music_0.json</strong> and drop it below.</div>
+        </div>
+      </div>
+      <div class="upload-zone" id="drop-zone-spotify" onclick="document.getElementById('file-spotify').click()">
+        <div class="upload-icon">📂</div>
+        <div class="upload-title">Drop your StreamingHistory JSON here</div>
+        <div class="upload-sub">or click to browse · .json files only</div>
+        <input type="file" id="file-spotify" accept=".json" style="display:none" onchange="handleSpotifyFile(this.files[0])"/>
+      </div>
+    </div>
+
+    <!-- ── APPLE MUSIC PANEL ── -->
+    <div id="panel-apple" class="source-panel" style="display:none">
+      <div class="steps-row">
+        <div class="how-step">
+          <div class="how-num">01</div>
+          <div class="how-text">Go to <a href="https://privacy.apple.com" target="_blank" class="link-green">privacy.apple.com</a> → Sign in → Request a copy of your data</div>
+        </div>
+        <div class="how-step">
+          <div class="how-num">02</div>
+          <div class="how-text">Select <strong>Apple Media Services</strong> and request. Apple emails you a download link within a few days.</div>
+        </div>
+        <div class="how-step">
+          <div class="how-num">03</div>
+          <div class="how-text">Find your <strong>Apple Music Play Activity.csv</strong> or any PDF from the export and upload it below.</div>
+        </div>
+      </div>
+      <div class="upload-zone" id="drop-zone-apple" onclick="document.getElementById('file-apple').click()">
+        <div class="upload-icon">🍎</div>
+        <div class="upload-title">Drop your Apple Music file here</div>
+        <div class="upload-sub">or click to browse · .pdf or .csv files</div>
+        <input type="file" id="file-apple" accept=".pdf,.csv" style="display:none" onchange="handleAppleFile(this.files[0])"/>
+      </div>
+    </div>
+
+    <!-- ── YOUTUBE PANEL ── -->
+    <div id="panel-youtube" class="source-panel" style="display:none">
+      {% if user.google_id %}
+      <div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--red);border-radius:16px;padding:32px;text-align:center">
+        <div style="font-size:48px;margin-bottom:16px">▶️</div>
+        <div style="font-size:20px;font-weight:700;margin-bottom:8px">YouTube Connected</div>
+        <div style="font-size:14px;color:var(--text2);margin-bottom:28px;line-height:1.6;max-width:400px;margin-left:auto;margin-right:auto">
+          We'll pull your liked videos and subscriptions to build your Music DNA from your YouTube taste.
+        </div>
+        <button class="btn btn-youtube" onclick="analyzeYoutube()" id="yt-btn">
+          ▶ Analyze My YouTube Music DNA
+        </button>
+      </div>
+      {% else %}
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:48px;text-align:center">
+        <div style="font-size:48px;margin-bottom:16px">▶️</div>
+        <div style="font-size:20px;font-weight:700;margin-bottom:8px">Connect YouTube</div>
+        <div style="font-size:14px;color:var(--text2);margin-bottom:28px;line-height:1.6;max-width:380px;margin-left:auto;margin-right:auto">
+          Sign in with Google to analyze your YouTube liked videos and subscriptions.
+        </div>
+        <a href="{{ url_for('auth_google') }}" class="btn btn-youtube">
+          <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+          Sign in with Google
+        </a>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- LOADING -->
+    <div id="upload-loading" style="display:none;text-align:center;padding:64px 0">
+      <div class="spinner" style="margin:0 auto 20px"></div>
+      <div style="font-size:20px;font-weight:700;margin-bottom:6px">Analyzing your Music DNA…</div>
+      <div id="load-status" class="mono-label" style="margin:0">Reading your data</div>
+    </div>
+  </div>
+
+  <!-- ── RESULTS SECTION ── -->
+  <div id="results" style="display:none">
+
+    <div class="page-header" style="margin-bottom:32px">
+      <div class="mono-label" id="result-source-label">Your Music DNA Report</div>
+      <h1 class="page-title" id="result-title">Your<br/><em>Music DNA</em></h1>
+      <div id="result-meta" style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap"></div>
+      <button class="btn btn-ghost btn-sm" style="margin-top:16px" onclick="resetAnalysis()">← Analyze Again</button>
+    </div>
+
+    <div class="stat-grid" id="stat-grid"></div>
+
+    <div class="section">
+      <div class="section-header"><div class="section-title">Your Vibe <span class="badge badge-free">Free</span></div></div>
+      <div class="vibe-card" id="vibe-card"></div>
+    </div>
+
+    <div class="section" id="section-artists">
+      <div class="section-header"><div class="section-title" id="artists-title">Top Artists <span class="badge badge-free">Free</span></div></div>
+      <div class="artist-grid" id="artist-grid"></div>
+    </div>
+
+    <div class="section" id="section-tracks">
+      <div class="section-header"><div class="section-title">Top Tracks <span class="badge badge-free">Free</span></div></div>
+      <div class="track-list" id="track-list"></div>
+    </div>
+
+    <!-- YouTube-specific: channels + videos -->
+    <div class="section" id="section-channels" style="display:none">
+      <div class="section-header"><div class="section-title">Top Channels <span class="badge badge-free">Free</span></div></div>
+      <div class="artist-grid" id="channel-grid"></div>
+    </div>
+
+    <div class="section" id="section-videos" style="display:none">
+      <div class="section-header"><div class="section-title">Most Liked Videos <span class="badge badge-free">Free</span></div></div>
+      <div class="track-list" id="video-list"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-header"><div class="section-title">Shareable Music DNA Card <span class="badge badge-premium">Premium</span></div></div>
+      <div id="dna-card-section"></div>
+    </div>
+
+  </div>
+</main>
+
+<!-- UPGRADE MODAL -->
+<div id="upgrade-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div style="font-size:40px;margin-bottom:16px">🔒</div>
+    <div class="modal-title">Premium Feature</div>
+    <div class="modal-sub">Upgrade to unlock all Music DNA features.</div>
+    <div class="feature-list">
+      {% for f in ['🃏 Shareable Music DNA cards','🎵 DNA Playlist creation','📈 Monthly listening trends','👥 Friend taste comparison'] %}
+      <div class="feature-list-item">{{ f }}</div>
+      {% endfor %}
+    </div>
+    <button class="btn btn-amber btn-full" onclick="upgradeNow()">Upgrade — $4.99/mo</button>
+    <button class="btn-text" onclick="closeModal()">Maybe later</button>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const COLORS    = ['#1DB954','#00c2ff','#f5a623','#ff3d00','#b980f0'];
+const isPremium = {{ 'true' if user.is_premium() else 'false' }};
+let currentSource = 'spotify';
+
+// ── SOURCE PICKER ─────────────────────────────────────────────
+function selectSource(src) {
+  currentSource = src;
+  document.querySelectorAll('.source-card').forEach(c => c.classList.remove('active'));
+  document.getElementById('src-' + src).classList.add('active');
+  document.querySelectorAll('.source-panel').forEach(p => p.style.display = 'none');
+  document.getElementById('panel-' + src).style.display = 'block';
+}
+
+// ── DRAG & DROP WIRING ────────────────────────────────────────
+['spotify','apple'].forEach(src => {
+  const zone = document.getElementById('drop-zone-' + src);
+  if (!zone) return;
+  zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('dragover'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file) src === 'spotify' ? handleSpotifyFile(file) : handleAppleFile(file);
+  });
+});
+
+// ── SPOTIFY JSON ──────────────────────────────────────────────
+async function handleSpotifyFile(file) {
+  if (!file?.name.endsWith('.json')) return alert('Please upload a .json file.');
+  await uploadFile(file, '/api/analyze/upload', 'Spotify');
+}
+
+// ── APPLE MUSIC PDF/CSV ───────────────────────────────────────
+async function handleAppleFile(file) {
+  if (!file?.name.match(/\.(pdf|csv)$/i)) return alert('Please upload a .pdf or .csv file from your Apple Music export.');
+  await uploadFile(file, '/api/analyze/apple', 'Apple Music');
+}
+
+async function uploadFile(file, endpoint, label) {
+  showLoading(`Reading your ${label} data…`);
+  const form = new FormData();
+  form.append('file', file);
+  try {
+    setStatus(`Building your Music DNA from ${label}…`);
+    const resp = await fetch(endpoint, { method: 'POST', body: form });
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error);
+    await sleep(300);
+    renderResults(data, label);
+  } catch (err) {
+    resetAnalysis();
+    alert('Error: ' + err.message);
+  }
+}
+
+// ── YOUTUBE ───────────────────────────────────────────────────
+async function analyzeYoutube() {
+  const btn = document.getElementById('yt-btn');
+  btn.textContent = 'Analyzing…'; btn.disabled = true;
+  showLoading('Connecting to YouTube…');
+  try {
+    setStatus('Fetching your liked videos and subscriptions…');
+    const resp = await fetch('/api/analyze/youtube');
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error);
+    await sleep(300);
+    renderResults(data, 'YouTube');
+  } catch (err) {
+    resetAnalysis();
+    btn.textContent = '▶ Analyze My YouTube Music DNA'; btn.disabled = false;
+    alert('Error: ' + err.message);
+  }
+}
+
+// ── RENDER ────────────────────────────────────────────────────
+function renderResults(data, label) {
+  document.getElementById('upload-section').style.display = 'none';
+  document.getElementById('results').style.display = 'block';
+
+  const isYT = data.source === 'youtube';
+  const name = '{{ user.username }}'.charAt(0).toUpperCase() + '{{ user.username }}'.slice(1);
+
+  document.getElementById('result-source-label').textContent = `${label} · Music DNA Report`;
+  document.getElementById('result-title').innerHTML = `${name}'s<br/><em>Music DNA</em>`;
+
+  // Meta pills
+  const pills = isYT ? [
+    `<strong>${data.total_liked||0}</strong> liked videos`,
+    `<strong>${data.total_subs||0}</strong> subscriptions`,
+    `<strong>${data.total_pls||0}</strong> playlists`,
+  ] : data.is_playlist ? [
+    `<strong>${data.total_tracks||0}</strong> songs`,
+    `<strong>${data.total_hours||0}h</strong> total runtime`,
+    `<strong>${data.top_artists?.length||0}</strong> artists`,
+  ] : [
+    `<strong>${data.total_plays||0}</strong> plays`,
+    `<strong>${data.total_hours||0}h</strong> listened`,
+    `<strong>${data.total_tracks||0}</strong> unique tracks`,
+    `<strong>${data.top_artists?.length||0}</strong> artists`,
+  ];
+  document.getElementById('result-meta').innerHTML = pills.map(t => `<div class="meta-pill">${t}</div>`).join('');
+
+  // Stats
+  const stats = isYT ? [
+    { num: data.top_channel||'—', label: 'Top Channel',       color: '#ff3d00' },
+    { num: data.total_liked||0,   label: 'Liked Videos',      color: '#00c2ff' },
+    { num: data.total_subs||0,    label: 'Subscriptions',     color: '#f5a623' },
+    { num: data.total_pls||0,     label: 'Playlists',         color: '#b980f0' },
+  ] : [
+    { num: data.top_artist||'—',  label: 'Most Played Artist', color: '#1DB954' },
+    { num: data.top_track||'—',   label: 'Most Played Track',  color: '#00c2ff' },
+    { num: `${data.total_hours||0}h`, label: 'Total Listened', color: '#f5a623' },
+    { num: data.total_plays||0,   label: 'Total Plays',        color: '#b980f0' },
+  ];
+  const fs = n => n.toString().length > 12 ? '14px' : n.toString().length > 8 ? '18px' : '28px';
+  document.getElementById('stat-grid').innerHTML = stats.map(s => `
+    <div class="stat-box">
+      <div class="stat-num" style="color:${s.color};font-size:${fs(s.num)}">${s.num}</div>
+      <div class="stat-label">${s.label}</div>
+    </div>`).join('');
+
+  // Vibe
+  document.getElementById('vibe-card').innerHTML = `
+    <div class="mono-label">Music DNA Summary</div>
+    <div class="vibe-text">"${data.vibe||'Your Music DNA is uniquely yours.'}"</div>`;
+
+  // Artists OR Channels
+  if (isYT) {
+    document.getElementById('section-artists').style.display = 'none';
+    document.getElementById('section-tracks').style.display  = 'none';
+    document.getElementById('section-channels').style.display = 'block';
+    document.getElementById('section-videos').style.display   = 'block';
+
+    document.getElementById('channel-grid').innerHTML = (data.top_channels||[]).map((c,i) => `
+      <div class="artist-card">
+        <div class="artist-avatar" style="background:${COLORS[i%COLORS.length]}22;color:${COLORS[i%COLORS.length]}">#${i+1}</div>
+        <div>
+          <div class="artist-name">${c.name}</div>
+          <div class="artist-plays">${c.likes} liked videos</div>
+        </div>
+      </div>`).join('') || '<p style="color:var(--text3)">No channel data found.</p>';
+
+    document.getElementById('video-list').innerHTML = (data.top_videos||[]).map((v,i) => `
+      <div class="track-row">
+        <div class="track-num">${i+1}</div>
+        <div>
+          <div class="track-name">${v.title}</div>
+          <div class="track-artist">${v.channel}</div>
+        </div>
+        <a href="${v.url}" target="_blank" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--red);text-decoration:none">▶ Watch</a>
+      </div>`).join('') || '<p style="color:var(--text3)">No video data found.</p>';
+  } else {
+    document.getElementById('section-artists').style.display = 'block';
+    document.getElementById('section-tracks').style.display  = 'block';
+    document.getElementById('section-channels').style.display = 'none';
+    document.getElementById('section-videos').style.display   = 'none';
+
+    document.getElementById('artist-grid').innerHTML = (data.top_artists||[]).slice(0,12).map((a,i) => `
+      <div class="artist-card">
+        <div class="artist-avatar" style="background:${COLORS[i%COLORS.length]}22;color:${COLORS[i%COLORS.length]}">#${i+1}</div>
+        <div>
+          <div class="artist-name">${a.name}</div>
+          ${!data.is_playlist && a.plays ? `<div class="artist-plays">${a.plays} plays</div>` : ''}
+        </div>
+      </div>`).join('') || '<p style="color:var(--text3)">No artist data found.</p>';
+
+    document.getElementById('track-list').innerHTML = (data.top_tracks||[]).slice(0,10).map((t,i) => `
+      <div class="track-row">
+        <div class="track-num">${i+1}</div>
+        <div>
+          <div class="track-name">${t.name}</div>
+          <div class="track-artist">${t.artist}</div>
+        </div>
+        ${!data.is_playlist && t.plays ? `<div class="track-plays">${t.plays} plays</div>` : ''}
+      </div>`).join('') || '<p style="color:var(--text3)">No track data found.</p>';
+  }
+
+  // DNA Card
+  renderDnaCard(data, label);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function renderDnaCard(data, label) {
+  const el = document.getElementById('dna-card-section');
+  if (!isPremium) {
+    el.innerHTML = `
+      <div class="locked-card">
+        <div class="locked-icon">🔒</div>
+        <div class="locked-title">Shareable Music DNA Card</div>
+        <div class="locked-sub">Generate a shareable image of your Music DNA for Instagram, Twitter, or anywhere.</div>
+        <button class="btn btn-amber btn-sm" onclick="showUpgradeModal()">Unlock with Premium — $4.99/mo</button>
+      </div>`;
+    return;
+  }
+  const top   = data.top_artist || data.top_channel || '—';
+  const stat2 = data.total_hours ? `${data.total_hours}h listened` : `${data.total_liked||0} liked videos`;
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:auto 1fr;gap:32px;align-items:start;flex-wrap:wrap">
+      <div class="dna-card-preview">
+        <div class="mono-label" style="color:var(--green)">ANALYZEMYPLAYLIST.COM</div>
+        <div style="font-size:22px;font-weight:800;margin-top:8px">${'{{ user.username }}'.charAt(0).toUpperCase() + '{{ user.username }}'.slice(1)}'s</div>
+        <div style="font-family:'Instrument Serif',serif;font-style:italic;font-size:18px;color:var(--green);margin-bottom:16px">Music DNA</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div class="dna-card-stat"><div class="dna-card-stat-num">${top}</div><div class="dna-card-stat-label">TOP ${data.source==='youtube'?'CHANNEL':'ARTIST'}</div></div>
+          <div class="dna-card-stat"><div class="dna-card-stat-num">${stat2}</div><div class="dna-card-stat-label">SOURCE: ${label.toUpperCase()}</div></div>
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-top:12px;font-style:italic;line-height:1.5">"${(data.vibe||'').substring(0,80)}…"</div>
+      </div>
+      <div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px">Your Music DNA Card</div>
+        <p style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:20px">Download and share your Music DNA anywhere.</p>
+        <button class="btn btn-amber" onclick="alert('Image export coming in v2 — screenshot the card for now!')">⬇ Download as Image</button>
+      </div>
+    </div>`;
+}
+
+// ── HELPERS ───────────────────────────────────────────────────
+function showLoading(msg) {
+  document.getElementById('upload-section').style.display  = 'none';
+  document.getElementById('upload-loading').style.display  = 'block';
+  setStatus(msg);
+}
+function setStatus(msg) { document.getElementById('load-status').textContent = msg; }
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+function resetAnalysis() {
+  document.getElementById('results').style.display        = 'none';
+  document.getElementById('upload-loading').style.display = 'none';
+  document.getElementById('upload-section').style.display = 'block';
+  ['file-spotify','file-apple'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+  const ytBtn = document.getElementById('yt-btn');
+  if (ytBtn) { ytBtn.textContent = '▶ Analyze My YouTube Music DNA'; ytBtn.disabled = false; }
+}
+
+function showUpgradeModal() { document.getElementById('upgrade-modal').style.display = 'flex'; }
+function closeModal()        { document.getElementById('upgrade-modal').style.display = 'none'; }
+async function upgradeNow() {
+  const r = await fetch('/api/user/upgrade', { method: 'POST' });
+  const d = await r.json();
+  if (d.success) window.location.reload();
+}
+
+// Load existing analysis from ?load= param
+const loadId = new URLSearchParams(window.location.search).get('load');
+if (loadId) {
+  (async () => {
+    const r = await fetch(`/api/analysis/${loadId}`);
+    if (r.ok) { const d = await r.json(); renderResults(d, d.source === 'youtube' ? 'YouTube' : d.source === 'apple' ? 'Apple Music' : 'Spotify'); }
+  })();
+}
+</script>
+
+<style>
+.source-card { background:var(--surface); border:2px solid var(--border); border-radius:16px; padding:28px; cursor:pointer; transition:border-color 0.2s, transform 0.2s; position:relative; }
+.source-card:hover { border-color:var(--text3); transform:translateY(-3px); }
+.source-card.active { border-color:var(--green); background:rgba(29,185,84,0.04); }
+.source-icon { font-size:32px; margin-bottom:14px; }
+.source-name { font-size:18px; font-weight:700; margin-bottom:8px; }
+.source-desc { font-size:13px; color:var(--text2); line-height:1.6; }
+.source-badge { position:absolute; top:16px; right:16px; font-family:'DM Mono',monospace; font-size:9px; padding:3px 8px; border-radius:999px; letter-spacing:0.1em; }
+.source-badge.live { background:rgba(29,185,84,0.15); color:var(--green); border:1px solid rgba(29,185,84,0.3); }
+.source-panel { animation:fadeIn 0.3s ease; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+.btn-youtube { display:inline-flex; align-items:center; gap:10px; padding:14px 28px; border-radius:999px; font-family:'Syne',sans-serif; font-size:15px; font-weight:700; background:#ff0000; color:#fff; border:none; cursor:pointer; transition:opacity 0.2s, transform 0.2s; text-decoration:none; }
+.btn-youtube:hover { opacity:0.85; transform:translateY(-2px); }
+</style>
+{% endblock %}

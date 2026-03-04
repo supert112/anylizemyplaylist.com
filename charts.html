@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+{% block title %}World Charts — AnalyzeMyPlaylist{% endblock %}
+
+{% block body %}
+<nav class="nav-sticky">
+  <a href="{{ url_for('index') }}" class="nav-logo">Analyze<span>My</span>Playlist</a>
+  <div class="nav-right">
+    {% if user %}
+    <a href="{{ url_for('dashboard') }}" class="nav-link">Dashboard</a>
+    <a href="{{ url_for('logout') }}" class="btn-logout">Sign out</a>
+    {% else %}
+    <a href="{{ url_for('login') }}" class="nav-link">Sign in</a>
+    <a href="{{ url_for('signup') }}" class="btn btn-green btn-sm">Join free</a>
+    {% endif %}
+  </div>
+</nav>
+
+<main class="main-content">
+
+  <!-- HERO -->
+  <div class="charts-hero">
+    <div class="mono-label">Live Global Data · Updated hourly</div>
+    <h1 class="charts-title">What the world<br/><em>is listening to</em></h1>
+    <p class="charts-sub">Real-time charts from Last.fm across 25+ countries and territories. Click any track to hear a preview.</p>
+  </div>
+
+  <!-- COUNTRY PICKER -->
+  <div class="country-strip" id="country-strip">
+    <button class="country-btn active" data-code="global" onclick="loadCharts('global',this)">🌍 Global</button>
+    <button class="country-btn" data-code="us"   onclick="loadCharts('us',this)">🇺🇸 USA</button>
+    <button class="country-btn" data-code="pr"   onclick="loadCharts('pr',this)">🇵🇷 Puerto Rico</button>
+    <button class="country-btn" data-code="mx"   onclick="loadCharts('mx',this)">🇲🇽 Mexico</button>
+    <button class="country-btn" data-code="br"   onclick="loadCharts('br',this)">🇧🇷 Brazil</button>
+    <button class="country-btn" data-code="ar"   onclick="loadCharts('ar',this)">🇦🇷 Argentina</button>
+    <button class="country-btn" data-code="co"   onclick="loadCharts('co',this)">🇨🇴 Colombia</button>
+    <button class="country-btn" data-code="cl"   onclick="loadCharts('cl',this)">🇨🇱 Chile</button>
+    <button class="country-btn" data-code="gb"   onclick="loadCharts('gb',this)">🇬🇧 UK</button>
+    <button class="country-btn" data-code="de"   onclick="loadCharts('de',this)">🇩🇪 Germany</button>
+    <button class="country-btn" data-code="fr"   onclick="loadCharts('fr',this)">🇫🇷 France</button>
+    <button class="country-btn" data-code="es"   onclick="loadCharts('es',this)">🇪🇸 Spain</button>
+    <button class="country-btn" data-code="it"   onclick="loadCharts('it',this)">🇮🇹 Italy</button>
+    <button class="country-btn" data-code="se"   onclick="loadCharts('se',this)">🇸🇪 Sweden</button>
+    <button class="country-btn" data-code="no"   onclick="loadCharts('no',this)">🇳🇴 Norway</button>
+    <button class="country-btn" data-code="nl"   onclick="loadCharts('nl',this)">🇳🇱 Netherlands</button>
+    <button class="country-btn" data-code="pl"   onclick="loadCharts('pl',this)">🇵🇱 Poland</button>
+    <button class="country-btn" data-code="pt"   onclick="loadCharts('pt',this)">🇵🇹 Portugal</button>
+    <button class="country-btn" data-code="tr"   onclick="loadCharts('tr',this)">🇹🇷 Turkey</button>
+    <button class="country-btn" data-code="ru"   onclick="loadCharts('ru',this)">🇷🇺 Russia</button>
+    <button class="country-btn" data-code="jp"   onclick="loadCharts('jp',this)">🇯🇵 Japan</button>
+    <button class="country-btn" data-code="kr"   onclick="loadCharts('kr',this)">🇰🇷 South Korea</button>
+    <button class="country-btn" data-code="in"   onclick="loadCharts('in',this)">🇮🇳 India</button>
+    <button class="country-btn" data-code="au"   onclick="loadCharts('au',this)">🇦🇺 Australia</button>
+    <button class="country-btn" data-code="ca"   onclick="loadCharts('ca',this)">🇨🇦 Canada</button>
+    <button class="country-btn" data-code="za"   onclick="loadCharts('za',this)">🇿🇦 South Africa</button>
+    <button class="country-btn" data-code="ng"   onclick="loadCharts('ng',this)">🇳🇬 Nigeria</button>
+    <button class="country-btn" data-code="ph"   onclick="loadCharts('ph',this)">🇵🇭 Philippines</button>
+    <button class="country-btn" data-code="id"   onclick="loadCharts('id',this)">🇮🇩 Indonesia</button>
+    <button class="country-btn" data-code="th"   onclick="loadCharts('th',this)">🇹🇭 Thailand</button>
+  </div>
+
+  <!-- CHARTS GRID -->
+  <div id="charts-area">
+    <div id="charts-loading" style="text-align:center;padding:80px 0">
+      <div class="spinner" style="margin:0 auto 20px"></div>
+      <div style="font-size:18px;font-weight:700">Loading charts…</div>
+    </div>
+
+    <div id="charts-content" style="display:none">
+      <div style="display:grid;grid-template-columns:1fr 280px;gap:32px;align-items:start" class="charts-layout">
+
+        <!-- TRACK LIST -->
+        <div>
+          <div class="section-header" style="margin-bottom:20px">
+            <div class="section-title" id="chart-title">🌍 Global Top Tracks</div>
+            <div class="mono-label" id="chart-meta" style="margin:0"></div>
+          </div>
+          <div id="track-list"></div>
+        </div>
+
+        <!-- SIDEBAR: TOP ARTISTS + NOW PLAYING -->
+        <div style="position:sticky;top:80px">
+          <!-- NOW PLAYING -->
+          <div id="player-box" style="display:none;margin-bottom:24px">
+            <div class="player-card">
+              <div class="mono-label" style="margin-bottom:12px;color:var(--green)">▶ NOW PLAYING</div>
+              <div id="player-title" style="font-size:16px;font-weight:700;margin-bottom:4px"></div>
+              <div id="player-artist" style="font-size:13px;color:var(--text2);margin-bottom:16px"></div>
+              <audio id="audio-player" controls style="width:100%;border-radius:8px;accent-color:var(--green)"></audio>
+              <div style="margin-top:12px;font-size:11px;color:var(--text3);font-family:'DM Mono',monospace">30-second preview via Spotify</div>
+            </div>
+          </div>
+
+          <!-- TOP ARTISTS -->
+          <div class="section-header" style="margin-bottom:16px">
+            <div class="section-title" style="font-size:16px">Top Artists</div>
+          </div>
+          <div id="artist-list"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentAudio = null;
+let currentCode  = 'global';
+
+async function loadCharts(code, btn) {
+  currentCode = code;
+  document.querySelectorAll('.country-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+
+  document.getElementById('charts-loading').style.display = 'block';
+  document.getElementById('charts-content').style.display = 'none';
+
+  try {
+    const resp = await fetch(`/api/charts?country=${code}`);
+    const data = await resp.json();
+    renderCharts(data);
+  } catch (err) {
+    document.getElementById('charts-loading').innerHTML = `<p style="color:var(--text3)">Could not load charts. Try again.</p>`;
+  }
+}
+
+function renderCharts(data) {
+  document.getElementById('charts-loading').style.display = 'none';
+  document.getElementById('charts-content').style.display = 'block';
+
+  const name = data.country_name || 'Global';
+  const flag = data.country === 'global' ? '🌍' : '';
+  document.getElementById('chart-title').textContent = `${flag} ${name} Top Tracks`;
+  document.getElementById('chart-meta').textContent  = `${data.tracks.length} tracks · Live data`;
+
+  // Track list
+  const tl = document.getElementById('track-list');
+  tl.innerHTML = (data.tracks||[]).map((t,i) => `
+    <div class="chart-row ${t.preview_url ? 'has-preview' : ''}" onclick="${t.preview_url ? `playPreview('${esc(t.preview_url)}','${esc(t.title)}','${esc(t.artist)}',this)` : `window.open('${t.url}','_blank')`}">
+      <div class="chart-rank ${i < 3 ? 'rank-top' : ''}">${i < 3 ? ['🥇','🥈','🥉'][i] : t.rank}</div>
+      <div class="chart-img-wrap">
+        ${t.image ? `<img src="${t.image}" class="chart-img" onerror="this.style.display='none'"/>` : `<div class="chart-img-placeholder">${t.artist.charAt(0)}</div>`}
+        ${t.preview_url ? `<div class="chart-play-icon">▶</div>` : ''}
+      </div>
+      <div class="chart-info">
+        <div class="chart-track-name">${t.title}</div>
+        <div class="chart-track-artist">${t.artist}</div>
+      </div>
+      <div class="chart-listeners">
+        <div style="font-size:13px;font-weight:700;color:var(--text1)">${fmtNum(t.listeners)}</div>
+        <div style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace">listeners</div>
+      </div>
+    </div>`).join('') || '<p style="color:var(--text3);padding:20px">No chart data available for this region.</p>';
+
+  // Artist sidebar
+  const al = document.getElementById('artist-list');
+  al.innerHTML = (data.artists||[]).map((a,i) => `
+    <div class="sidebar-artist">
+      <div class="sidebar-rank">${i+1}</div>
+      <div>
+        <div style="font-size:14px;font-weight:600">${a.name}</div>
+        <div style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace">${fmtNum(a.listeners)} listeners</div>
+      </div>
+    </div>`).join('') || '<p style="color:var(--text3);font-size:13px">No artist data.</p>';
+}
+
+function playPreview(url, title, artist, row) {
+  // Stop current
+  if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+  document.querySelectorAll('.chart-row.playing').forEach(r => r.classList.remove('playing'));
+
+  const box    = document.getElementById('player-box');
+  const audio  = document.getElementById('audio-player');
+  const ptitle = document.getElementById('player-title');
+  const partist= document.getElementById('player-artist');
+
+  ptitle.textContent  = title;
+  partist.textContent = artist;
+  audio.src = url;
+  audio.play();
+  box.style.display = 'block';
+  row.classList.add('playing');
+  currentAudio = audio;
+
+  audio.onended = () => { row.classList.remove('playing'); box.style.display='none'; };
+  box.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function fmtNum(n) {
+  if (!n) return '0';
+  if (n >= 1_000_000) return (n/1_000_000).toFixed(1)+'M';
+  if (n >= 1_000)     return (n/1_000).toFixed(0)+'K';
+  return n.toString();
+}
+
+function esc(s) { return (s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+
+// Load on page open
+loadCharts('global', document.querySelector('[data-code="global"]'));
+</script>
+
+<style>
+.charts-hero { padding:60px 0 40px; }
+.charts-title { font-size:clamp(40px,6vw,72px); font-weight:900; line-height:1.05; margin:12px 0; }
+.charts-title em { font-family:'Instrument Serif',serif; font-style:italic; color:var(--green); }
+.charts-sub { font-size:15px; color:var(--text2); max-width:500px; line-height:1.6; }
+
+.country-strip { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:40px; padding-bottom:16px; }
+.country-btn { padding:8px 14px; border-radius:999px; border:1px solid var(--border); background:var(--surface);
+  font-family:'DM Mono',monospace; font-size:11px; color:var(--text2); cursor:pointer;
+  transition:all 0.15s; white-space:nowrap; letter-spacing:0.03em; }
+.country-btn:hover { border-color:var(--text3); color:var(--text1); }
+.country-btn.active { background:var(--green); border-color:var(--green); color:#000; font-weight:700; }
+
+.chart-row { display:flex; align-items:center; gap:16px; padding:14px 16px; border-radius:12px;
+  border:1px solid transparent; cursor:pointer; transition:all 0.15s; margin-bottom:4px; }
+.chart-row:hover { background:var(--surface); border-color:var(--border); }
+.chart-row.has-preview:hover { border-color:var(--green); }
+.chart-row.playing { background:rgba(29,185,84,0.08); border-color:var(--green); }
+.chart-rank { width:36px; text-align:center; font-family:'DM Mono',monospace; font-size:13px;
+  color:var(--text3); flex-shrink:0; }
+.rank-top { font-size:20px; }
+.chart-img-wrap { position:relative; flex-shrink:0; }
+.chart-img { width:48px; height:48px; border-radius:8px; object-fit:cover; display:block; }
+.chart-img-placeholder { width:48px; height:48px; border-radius:8px; background:var(--surface2);
+  display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:700; color:var(--text3); }
+.chart-play-icon { position:absolute; inset:0; background:rgba(0,0,0,0.5); border-radius:8px;
+  display:flex; align-items:center; justify-content:center; font-size:16px; opacity:0; transition:opacity 0.15s; }
+.chart-row:hover .chart-play-icon { opacity:1; }
+.chart-info { flex:1; min-width:0; }
+.chart-track-name { font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.chart-track-artist { font-size:12px; color:var(--text2); margin-top:2px; }
+.chart-listeners { text-align:right; flex-shrink:0; }
+
+.player-card { background:var(--surface); border:1px solid var(--green); border-radius:16px; padding:20px; }
+.sidebar-artist { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--border); }
+.sidebar-artist:last-child { border-bottom:none; }
+.sidebar-rank { width:24px; font-family:'DM Mono',monospace; font-size:12px; color:var(--green); flex-shrink:0; font-weight:700; }
+
+@media(max-width:768px) {
+  .charts-layout { grid-template-columns:1fr !important; }
+  .country-strip { overflow-x:auto; flex-wrap:nowrap; padding-bottom:8px; }
+}
+</style>
+{% endblock %}

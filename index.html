@@ -1,0 +1,353 @@
+{% extends "base.html" %}
+{% block title %}AnalyzeMyPlaylist — Discover Your Music DNA{% endblock %}
+
+{% block head %}
+<style>
+.hero { min-height:100vh; display:flex; flex-direction:column; justify-content:center; padding:120px 48px 80px; position:relative; overflow:hidden; }
+.hero::before { content:''; position:absolute; top:-200px; left:-200px; width:700px; height:700px; background:radial-gradient(circle,rgba(29,185,84,0.07) 0%,transparent 70%); pointer-events:none; }
+.hero-eyebrow { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.2em; color:var(--green); text-transform:uppercase; margin-bottom:24px; opacity:0; animation:fadeUp 0.7s ease forwards 0.2s; }
+.hero-title { font-size:clamp(52px,8vw,110px); font-weight:800; line-height:0.92; letter-spacing:-0.03em; max-width:900px; opacity:0; animation:fadeUp 0.7s ease forwards 0.35s; }
+.hero-title em { font-family:'Instrument Serif',serif; font-style:italic; font-weight:400; color:var(--green); }
+.hero-sub { margin-top:32px; font-size:18px; font-weight:400; color:var(--text2); max-width:520px; line-height:1.6; opacity:0; animation:fadeUp 0.7s ease forwards 0.5s; }
+.hero-actions { margin-top:48px; display:flex; gap:16px; flex-wrap:wrap; opacity:0; animation:fadeUp 0.7s ease forwards 0.65s; }
+.hero-platforms { margin-top:32px; display:flex; gap:10px; flex-wrap:wrap; opacity:0; animation:fadeUp 0.7s ease forwards 0.8s; }
+.hero-scroll { margin-top:64px; display:flex; align-items:center; gap:12px; font-family:'DM Mono',monospace; font-size:11px; color:var(--text3); letter-spacing:0.1em; opacity:0; animation:fadeUp 0.7s ease forwards 1s; }
+.hero-scroll-line { width:40px; height:1px; background:var(--border); }
+@keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+
+.ticker-wrap { border-top:1px solid var(--border); border-bottom:1px solid var(--border); overflow:hidden; padding:14px 0; background:var(--bg2); }
+.ticker { display:flex; animation:ticker 30s linear infinite; white-space:nowrap; width:max-content; }
+.ticker-item { font-family:'DM Mono',monospace; font-size:12px; color:var(--text3); padding:0 40px; display:inline-flex; align-items:center; gap:12px; }
+.ticker-item strong { color:var(--text2); }
+@keyframes ticker { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+
+.land-section { padding:100px 48px; max-width:1100px; margin:0 auto; }
+.land-title { font-size:clamp(32px,5vw,56px); font-weight:800; letter-spacing:-0.03em; line-height:1; margin-bottom:64px; }
+.land-title em { font-family:'Instrument Serif',serif; font-style:italic; font-weight:400; color:var(--text2); }
+.steps-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:2px; }
+.land-step { background:var(--surface); padding:40px 32px; position:relative; transition:background 0.2s; }
+.land-step:first-child { border-radius:16px 0 0 16px; }
+.land-step:last-child  { border-radius:0 16px 16px 0; }
+.land-step:hover { background:var(--surface2); }
+.land-step-num { font-family:'Instrument Serif',serif; font-size:72px; font-style:italic; color:var(--border); line-height:1; margin-bottom:24px; display:block; }
+.land-step-title { font-size:20px; font-weight:700; margin-bottom:12px; }
+.land-step-body { font-size:14px; color:var(--text2); line-height:1.7; font-weight:400; }
+
+.feat-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; }
+.feat-card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:32px; transition:border-color 0.2s, transform 0.2s; }
+.feat-card:hover { border-color:var(--text3); transform:translateY(-3px); }
+.feat-tag { display:inline-flex; align-items:center; gap:6px; font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.12em; text-transform:uppercase; padding:5px 12px; border-radius:999px; border:1px solid var(--border); color:var(--text3); margin-bottom:20px; }
+.feat-dot { width:6px; height:6px; border-radius:50%; background:var(--green); }
+.feat-title { font-size:22px; font-weight:700; margin-bottom:12px; letter-spacing:-0.02em; }
+.feat-body { font-size:14px; color:var(--text2); line-height:1.7; font-weight:400; }
+
+.plat-section { padding:80px 48px; background:var(--bg2); border-top:1px solid var(--border); border-bottom:1px solid var(--border); text-align:center; }
+.plat-row { display:flex; justify-content:center; gap:16px; flex-wrap:wrap; margin-top:40px; }
+.plat-pill { display:flex; align-items:center; gap:10px; padding:14px 24px; background:var(--surface); border:1px solid var(--border); border-radius:999px; font-size:14px; font-weight:600; color:var(--text); transition:all 0.2s; }
+.plat-pill:hover { border-color:var(--text3); transform:translateY(-2px); }
+.plat-pill.coming { color:var(--text3); border-style:dashed; }
+.coming-badge { font-family:'DM Mono',monospace; font-size:9px; color:var(--amber); background:rgba(245,166,35,0.1); padding:3px 8px; border-radius:999px; letter-spacing:0.1em; }
+.live-badge   { font-family:'DM Mono',monospace; font-size:9px; color:var(--green); background:rgba(29,185,84,0.15); padding:3px 8px; border-radius:999px; letter-spacing:0.1em; }
+
+.cta-section { padding:120px 48px; text-align:center; position:relative; overflow:hidden; }
+.cta-section::before { content:''; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:600px; height:400px; background:radial-gradient(ellipse,rgba(29,185,84,0.06) 0%,transparent 70%); pointer-events:none; }
+.cta-title { font-size:clamp(36px,6vw,72px); font-weight:800; letter-spacing:-0.03em; line-height:1; margin-bottom:24px; }
+.cta-title em { font-family:'Instrument Serif',serif; font-style:italic; font-weight:400; color:var(--green); }
+
+.land-footer { padding:40px 48px; border-top:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; }
+.land-footer-links { display:flex; gap:24px; list-style:none; }
+.land-footer-links a { font-size:12px; color:var(--text3); text-decoration:none; transition:color 0.2s; }
+.land-footer-links a:hover { color:var(--text2); }
+
+.reveal { opacity:0; transform:translateY(24px); transition:opacity 0.7s ease, transform 0.7s ease; }
+.reveal.visible { opacity:1; transform:translateY(0); }
+
+@media(max-width:768px){
+  .hero,.land-section { padding:100px 24px 60px; }
+  .steps-grid { grid-template-columns:1fr; }
+  .land-step:first-child { border-radius:16px 16px 0 0; }
+  .land-step:last-child  { border-radius:0 0 16px 16px; }
+  .feat-grid { grid-template-columns:1fr; }
+  .plat-section,.cta-section { padding:60px 24px; }
+  .land-footer { padding:32px 24px; flex-direction:column; align-items:flex-start; }
+}
+</style>
+{% endblock %}
+
+{% block body %}
+
+<!-- NAV -->
+<nav class="nav-fixed">
+  <a href="{{ url_for('index') }}" class="nav-logo">Analyze<span>My</span>Playlist</a>
+  <div style="display:flex;gap:40px;align-items:center">
+    <a href="#how" style="font-size:13px;font-weight:600;color:var(--text2);text-decoration:none;transition:color 0.2s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text2)'">How it works</a>
+    <a href="/charts" style="font-size:13px;font-weight:600;color:var(--text2);text-decoration:none;transition:color 0.2s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text2)'">Charts</a>
+    <a href="#features" style="font-size:13px;font-weight:600;color:var(--text2);text-decoration:none;transition:color 0.2s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text2)'">Features</a>
+    {% if user %}
+      <a href="{{ url_for('dashboard') }}" style="background:var(--green);color:#000;padding:10px 22px;border-radius:999px;font-size:13px;font-weight:700;text-decoration:none;transition:opacity 0.2s" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">Dashboard</a>
+    {% else %}
+      <a href="{{ url_for('login') }}" style="font-size:13px;font-weight:600;color:var(--text2);text-decoration:none;transition:color 0.2s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text2)'">Sign in</a>
+      <a href="{{ url_for('signup') }}" style="background:var(--green);color:#000;padding:10px 22px;border-radius:999px;font-size:13px;font-weight:700;text-decoration:none;transition:opacity 0.2s" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">Get Started</a>
+    {% endif %}
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-eyebrow">· Your Music · Your Identity ·</div>
+  <h1 class="hero-title">
+    What does your<br/>playlist say about<br/><em>you?</em>
+  </h1>
+  <p class="hero-sub">
+    Upload your Spotify data and get a full breakdown of your Music DNA — genres, eras, moods, top artists, and what it all says about who you are.
+  </p>
+  <div class="hero-actions">
+    <a href="{{ url_for('signup') if not user else url_for('analyze') }}" class="btn btn-green">
+      🧬 {{ 'Analyze My Music DNA' if not user else 'Go to Dashboard' }}
+    </a>
+    <a href="#how" class="btn btn-ghost">See how it works</a>
+  </div>
+  <div class="hero-platforms">
+    <div class="plat-pill" style="padding:8px 16px;font-size:12px">📁 JSON / PDF File Upload <span class="live-badge">LIVE</span></div>
+    <div class="plat-pill coming" style="padding:8px 16px;font-size:12px">Use Spotify Directly <span class="coming-badge">COMING SOON</span></div>
+    <div class="plat-pill coming" style="padding:8px 16px;font-size:12px">Apple Music <span class="coming-badge">COMING SOON</span></div>
+  </div>
+  <div class="hero-scroll">
+    <div class="hero-scroll-line"></div>
+    Scroll to explore
+  </div>
+</section>
+
+<!-- TICKER -->
+<div class="ticker-wrap">
+  <div class="ticker">
+    {% set items = ['Top Artists — ranked by real plays','Genre Breakdown — your Music DNA mapped','Era Analysis — 70s soul or 2020s trap?','Mood Profile — heartbreak, hype, late night','Language Split — how multilingual is your taste?','Music DNA Card — shareable personality breakdown'] %}
+    {% for item in items * 2 %}
+    <span class="ticker-item"><span style="color:var(--green);font-size:16px">✦</span> <strong>{{ item.split(' — ')[0] }}</strong> — {{ item.split(' — ')[1] }}</span>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<section class="land-section" id="how">
+  <div class="reveal">
+    <div class="mono-label" style="margin-bottom:16px">Process</div>
+    <h2 class="land-title">Three steps.<br/><em>That's it.</em></h2>
+  </div>
+  <div class="steps-grid reveal">
+    <div class="land-step">
+      <span class="land-step-num">01</span>
+      <div class="land-step-title">Export your Spotify data</div>
+      <div class="land-step-body">Go to Spotify → Account → Privacy Settings → Download your data. Takes 2 minutes. We walk you through it step by step.</div>
+    </div>
+    <div class="land-step">
+      <span class="land-step-num">02</span>
+      <div class="land-step-title">Upload your JSON file</div>
+      <div class="land-step-body">Drag and drop your StreamingHistory file. We read it instantly — your Music DNA is processed right in your browser.</div>
+    </div>
+    <div class="land-step">
+      <span class="land-step-num">03</span>
+      <div class="land-step-title">Get your Music DNA</div>
+      <div class="land-step-body">A full visual report — top artists, tracks, mood profile, language split, and a vibe summary written from your actual data.</div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="land-section" id="features" style="padding-top:0">
+  <div class="reveal">
+    <div class="mono-label" style="margin-bottom:16px">Features</div>
+    <h2 class="land-title">Your Music DNA,<br/><em>decoded</em></h2>
+  </div>
+  <div class="feat-grid reveal">
+    <div class="feat-card">
+      <div class="feat-tag"><div class="feat-dot"></div>Free</div>
+      <div class="feat-title">Top Artists & Tracks</div>
+      <div class="feat-body">Your most played artists and tracks ranked by actual listen count from your streaming history — not estimates, real numbers.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-tag"><div class="feat-dot"></div>Free</div>
+      <div class="feat-title">Vibe Summary</div>
+      <div class="feat-body">A plain-English description of your Music DNA written from your real data. Not a quiz. Not an algorithm. Your actual taste, described.</div>
+    </div>
+    <div class="feat-card" style="border-left:2px solid var(--amber)">
+      <div class="feat-tag" style="border-color:rgba(245,166,35,0.3);color:var(--amber)"><div class="feat-dot" style="background:var(--amber)"></div>Premium</div>
+      <div class="feat-title">Shareable Music DNA Card</div>
+      <div class="feat-body">A downloadable image card of your Music DNA. Top artist, total hours, plays, and vibe — built to share on Instagram and Twitter.</div>
+    </div>
+    <div class="feat-card" style="border-left:2px solid var(--amber)">
+      <div class="feat-tag" style="border-color:rgba(245,166,35,0.3);color:var(--amber)"><div class="feat-dot" style="background:var(--amber)"></div>Premium</div>
+      <div class="feat-title">DNA Playlist Creation</div>
+      <div class="feat-body">We build a Spotify playlist directly from your Music DNA — top tracks, energy profile, and artists that match your taste. Saved right to your account.</div>
+    </div>
+  </div>
+</section>
+
+<!-- PLATFORMS -->
+<div class="plat-section">
+  <div class="mono-label">Works with your platform</div>
+  <div class="plat-row">
+    <div class="plat-pill">📁 JSON / PDF File Upload <span class="live-badge">LIVE</span></div>
+    <div class="plat-pill coming">Use Spotify Directly <span class="coming-badge">Coming Soon</span></div>
+    <div class="plat-pill coming">Apple Music <span class="coming-badge">Coming Soon</span></div>
+  </div>
+</div>
+
+<!-- CTA -->
+<section class="cta-section">
+  <div class="reveal">
+    <h2 class="cta-title">Ready to decode your<br/><em>Music DNA?</em></h2>
+    <p style="font-size:16px;color:var(--text2);margin-bottom:40px;font-weight:400;max-width:400px;margin-left:auto;margin-right:auto;line-height:1.6">Free forever. Upload your Spotify data and get your full breakdown in seconds.</p>
+    <a href="{{ url_for('signup') if not user else url_for('analyze') }}" class="btn btn-green" style="font-size:16px;padding:18px 36px">
+      🧬 {{ 'Analyze My Music DNA — Free' if not user else 'Go to Dashboard' }}
+    </a>
+    <div class="mono-label" style="margin-top:20px">Free · No credit card · Takes 30 seconds</div>
+  </div>
+</section>
+
+
+<!-- WORLD CHARTS SECTION -->
+<section class="land-section" style="padding:80px 0;background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
+  <div class="land-inner">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:20px;margin-bottom:40px">
+      <div>
+        <div class="mono-label">Live Data · Updated Hourly</div>
+        <h2 style="font-size:clamp(28px,4vw,48px);font-weight:900;margin:10px 0 0;line-height:1.1">
+          What the world is<br/><em style="font-family:'Instrument Serif',serif;color:var(--green);font-style:italic">listening to right now</em>
+        </h2>
+      </div>
+      <a href="{{ url_for('charts') }}" class="btn btn-ghost" style="white-space:nowrap">View Full Charts →</a>
+    </div>
+
+    <!-- MINI COUNTRY TABS -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:28px" id="home-country-tabs">
+      <button class="country-pill active" onclick="loadHomeCharts('global',this)">🌍 Global</button>
+      <button class="country-pill" onclick="loadHomeCharts('us',this)">🇺🇸 USA</button>
+      <button class="country-pill" onclick="loadHomeCharts('pr',this)">🇵🇷 Puerto Rico</button>
+      <button class="country-pill" onclick="loadHomeCharts('mx',this)">🇲🇽 Mexico</button>
+      <button class="country-pill" onclick="loadHomeCharts('br',this)">🇧🇷 Brazil</button>
+      <button class="country-pill" onclick="loadHomeCharts('gb',this)">🇬🇧 UK</button>
+      <button class="country-pill" onclick="loadHomeCharts('jp',this)">🇯🇵 Japan</button>
+      <button class="country-pill" onclick="loadHomeCharts('kr',this)">🇰🇷 Korea</button>
+      <a href="{{ url_for('charts') }}" class="country-pill" style="color:var(--green);text-decoration:none">+22 more →</a>
+    </div>
+
+    <!-- MINI CHART LIST -->
+    <div id="home-charts-loading" style="text-align:center;padding:40px">
+      <div class="spinner" style="margin:0 auto 16px"></div>
+      <div style="font-size:14px;color:var(--text2)">Loading charts…</div>
+    </div>
+    <div id="home-charts-grid" style="display:none">
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px" id="home-track-list"></div>
+      <!-- NOW PLAYING BAR -->
+      <div id="home-player" style="display:none;margin-top:24px">
+        <div style="background:var(--surface);border:1px solid var(--green);border-radius:14px;padding:18px 24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+          <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--green);font-weight:700">▶ NOW PLAYING</div>
+          <div style="flex:1;min-width:160px">
+            <div id="home-player-title" style="font-size:14px;font-weight:700"></div>
+            <div id="home-player-artist" style="font-size:12px;color:var(--text2)"></div>
+          </div>
+          <audio id="home-audio" controls style="flex:1;min-width:200px;max-width:300px;border-radius:8px;accent-color:var(--green)"></audio>
+          <button onclick="stopHomePlayer()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px">✕</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<style>
+.country-pill { padding:7px 14px; border-radius:999px; border:1px solid var(--border); background:var(--surface);
+  font-family:'DM Mono',monospace; font-size:11px; color:var(--text2); cursor:pointer; transition:all 0.15s; }
+.country-pill:hover { border-color:var(--text3); color:var(--text1); }
+.country-pill.active { background:var(--green); border-color:var(--green); color:#000; font-weight:700; }
+.mini-chart-card { background:var(--surface); border:1px solid var(--border); border-radius:12px;
+  padding:14px 16px; display:flex; align-items:center; gap:12px; cursor:pointer; transition:all 0.15s; }
+.mini-chart-card:hover { border-color:var(--green); transform:translateY(-2px); }
+.mini-chart-card.playing { border-color:var(--green); background:rgba(29,185,84,0.06); }
+.mini-rank { font-family:'DM Mono',monospace; font-size:12px; color:var(--text3); width:20px; flex-shrink:0; text-align:center; }
+.mini-info { flex:1; min-width:0; }
+.mini-title { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.mini-artist { font-size:11px; color:var(--text2); }
+.mini-play { font-size:14px; color:var(--green); opacity:0; transition:opacity 0.15s; flex-shrink:0; }
+.mini-chart-card:hover .mini-play { opacity:1; }
+</style>
+
+<script>
+let homeAudio = null;
+
+async function loadHomeCharts(code, btn) {
+  document.querySelectorAll('#home-country-tabs .country-pill').forEach(b => b.classList && b.classList.remove('active'));
+  if (btn && btn.classList) btn.classList.add('active');
+  document.getElementById('home-charts-loading').style.display = 'block';
+  document.getElementById('home-charts-grid').style.display    = 'none';
+  try {
+    const r = await fetch(`/api/charts?country=${code}`);
+    const d = await r.json();
+    renderHomeCharts(d);
+  } catch(e) {
+    document.getElementById('home-charts-loading').innerHTML = '<p style="color:var(--text3)">Could not load charts.</p>';
+  }
+}
+
+function renderHomeCharts(data) {
+  document.getElementById('home-charts-loading').style.display = 'none';
+  document.getElementById('home-charts-grid').style.display    = 'block';
+  const tl = document.getElementById('home-track-list');
+  tl.innerHTML = (data.tracks||[]).slice(0,12).map((t,i) => `
+    <div class="mini-chart-card" id="hmc-${i}" onclick="${t.preview_url ? `playHomePreview('${esc2(t.preview_url)}','${esc2(t.title)}','${esc2(t.artist)}',${i})` : `window.open('${t.url}','_blank')`}">
+      <div class="mini-rank">${i+1}</div>
+      <div class="mini-info">
+        <div class="mini-title">${t.title}</div>
+        <div class="mini-artist">${t.artist}</div>
+      </div>
+      ${t.preview_url ? '<div class="mini-play">▶</div>' : ''}
+    </div>`).join('');
+}
+
+function playHomePreview(url, title, artist, idx) {
+  if (homeAudio) homeAudio.pause();
+  document.querySelectorAll('.mini-chart-card.playing').forEach(c => c.classList.remove('playing'));
+  const audio = document.getElementById('home-audio');
+  document.getElementById('home-player-title').textContent  = title;
+  document.getElementById('home-player-artist').textContent = artist;
+  audio.src = url; audio.play();
+  document.getElementById('home-player').style.display = 'block';
+  document.getElementById('hmc-' + idx).classList.add('playing');
+  homeAudio = audio;
+}
+
+function stopHomePlayer() {
+  if (homeAudio) homeAudio.pause();
+  document.getElementById('home-player').style.display = 'none';
+  document.querySelectorAll('.mini-chart-card.playing').forEach(c => c.classList.remove('playing'));
+}
+
+function esc2(s) { return (s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+
+loadHomeCharts('global', document.querySelector('#home-country-tabs .country-pill'));
+</script>
+
+
+<!-- FOOTER -->
+<footer class="land-footer">
+  <div class="nav-logo">Analyze<span>My</span>Playlist</div>
+  <ul class="land-footer-links">
+    <li><a href="#">Privacy</a></li>
+    <li><a href="#">Terms</a></li>
+    <li><a href="{{ url_for('signup') }}">Sign Up</a></li>
+    <li><a href="{{ url_for('login') }}">Sign In</a></li>
+  </ul>
+  <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text3)">© 2026 AnalyzeMyPlaylist</div>
+</footer>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const obs = new IntersectionObserver((entries) => {
+  entries.forEach((e, i) => { if (e.isIntersecting) setTimeout(() => e.target.classList.add('visible'), i * 80); });
+}, { threshold: 0.08 });
+document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+</script>
+{% endblock %}
