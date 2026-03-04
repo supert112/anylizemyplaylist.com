@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Connecting… — AnalyzeMyPlaylist</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      background: #080808;
+      color: #f2f2f2;
+      font-family: 'Syne', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 24px;
+      text-align: center;
+      padding: 24px;
+    }
+    .spinner {
+      width: 48px; height: 48px;
+      border: 3px solid #1c1c1c;
+      border-top-color: #1DB954;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .status {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .sub {
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      color: #555;
+      letter-spacing: 0.05em;
+    }
+    .error-box {
+      background: #141414;
+      border: 1px solid #2a2a2a;
+      border-left: 3px solid #ff3d00;
+      border-radius: 12px;
+      padding: 24px 28px;
+      max-width: 420px;
+      text-align: left;
+    }
+    .error-title { font-size: 16px; font-weight: 700; color: #ff3d00; margin-bottom: 8px; }
+    .error-msg   { font-size: 13px; color: #b0b0b0; line-height: 1.6; margin-bottom: 16px; }
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #1c1c1c;
+      border: 1px solid #2a2a2a;
+      color: #f2f2f2;
+      border-radius: 999px;
+      padding: 10px 20px;
+      font-family: 'Syne', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .back-btn:hover { background: #242424; }
+  </style>
+  <script src="app.js"></script>
+</head>
+<body>
+
+  <div id="loading">
+    <div class="spinner"></div>
+    <div class="status">Connecting to Spotify…</div>
+    <div class="sub">Exchanging authorization code</div>
+  </div>
+
+  <script>
+    async function handleCallback() {
+      const params = new URLSearchParams(window.location.search);
+      const code   = params.get('code');
+      const state  = params.get('state');
+      const error  = params.get('error');
+
+      // Error from Spotify
+      if (error) {
+        showError('Spotify declined access', error === 'access_denied'
+          ? 'You cancelled the login. No worries — go back and try again whenever you\'re ready.'
+          : `Spotify returned an error: ${error}`);
+        return;
+      }
+
+      // State mismatch
+      if (state !== sessionStorage.getItem('pkce_state')) {
+        showError('Security check failed', 'State parameter mismatch. This can happen if you have multiple tabs open. Please try again.');
+        return;
+      }
+
+      if (!code) {
+        showError('Missing code', 'No authorization code was returned from Spotify. Please try again.');
+        return;
+      }
+
+      try {
+        document.querySelector('.sub').textContent = 'Getting access token…';
+        await AMP.exchangeCodeForToken(code);
+
+        document.querySelector('.sub').textContent = 'Loading your profile…';
+        await AMP.getOrCreateUser();
+
+        document.querySelector('.status').textContent = 'All set! Redirecting…';
+        document.querySelector('.sub').textContent = 'Taking you to your analysis';
+
+        setTimeout(() => { window.location.href = 'analyze.html'; }, 800);
+
+      } catch (err) {
+        showError('Something went wrong', err.message || 'Unknown error during authentication.');
+      }
+    }
+
+    function showError(title, msg) {
+      document.getElementById('loading').innerHTML = `
+        <div class="error-box">
+          <div class="error-title">⚠ ${title}</div>
+          <div class="error-msg">${msg}</div>
+          <a href="index.html" class="back-btn">← Back to Home</a>
+        </div>
+      `;
+    }
+
+    handleCallback();
+  </script>
+</body>
+</html>
